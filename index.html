@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Care Profile — Pip</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Care Profile — shared via Pip">
+  <meta property="og:description" content="View your pup's feeding schedule, medications, vet contacts &amp; more.">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(180deg, #F5F3FF 0%, #EDE9FE 100%);
+      min-height: 100vh;
+      padding: 0 0 40px 0;
+      color: #1F2937;
+    }
+    .header {
+      background: linear-gradient(135deg, #A855F7 0%, #9333EA 100%);
+      padding: 48px 24px 32px;
+      text-align: center;
+      color: white;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      backdrop-filter: blur(8px);
+    }
+    .avatar {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.5);
+      object-fit: cover;
+      margin-bottom: 12px;
+    }
+    .avatar-placeholder {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 12px;
+    }
+    .dog-name { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .dog-info { font-size: 15px; opacity: 0.85; }
+    .container { max-width: 480px; margin: -20px auto 0; padding: 0 16px; }
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+      border-left: 4px solid #D1D5DB;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .section-emoji { font-size: 20px; }
+    .section-title { font-size: 17px; font-weight: 600; flex: 1; }
+    .entry-count {
+      background: #F3F4F6; color: #6B7280;
+      font-size: 12px; font-weight: 600;
+      padding: 2px 8px; border-radius: 10px;
+    }
+    .entry { padding: 12px 0; border-top: 1px solid #F3F4F6; }
+    .entry:first-of-type { border-top: none; }
+    .entry-title { font-size: 15px; font-weight: 600; color: #1F2937; margin-bottom: 4px; }
+    .entry-content { font-size: 14px; color: #4B5563; line-height: 1.6; }
+    .entry-label { font-weight: 500; color: #374151; }
+    .entry-date { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+    .empty { font-size: 14px; color: #9CA3AF; font-style: italic; padding: 8px 0; }
+    .footer {
+      text-align: center; padding: 32px 24px;
+      color: #9CA3AF; font-size: 13px;
+    }
+    .pip-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: white; border-radius: 20px;
+      padding: 8px 16px; font-size: 14px; font-weight: 600;
+      color: #A855F7; box-shadow: 0 2px 8px rgba(168,85,247,0.15);
+      margin-top: 12px;
+    }
+    .live-dot {
+      width: 8px; height: 8px; background: #22C55E;
+      border-radius: 50%; display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    /* Loading */
+    .loading { text-align: center; padding: 80px 24px; }
+    .loading .spinner {
+      width: 40px; height: 40px; border: 4px solid #E5E7EB;
+      border-top-color: #A855F7; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Error / PIN card */
+    .card {
+      background: white; border-radius: 24px; padding: 40px 32px;
+      max-width: 380px; width: 100%; margin: 0 auto;
+      box-shadow: 0 8px 32px rgba(168,85,247,0.12); text-align: center;
+    }
+    .card-center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card .icon { font-size: 48px; margin-bottom: 16px; }
+    .card h1 { font-size: 22px; color: #1F2937; margin-bottom: 8px; font-weight: 700; }
+    .card p { font-size: 15px; color: #6B7280; line-height: 1.5; }
+    .card .error-msg { color: #EF4444; font-size: 14px; margin-bottom: 12px; }
+    .pin-input { display: flex; gap: 12px; justify-content: center; margin: 24px 0; }
+    .pin-input input {
+      width: 48px; height: 56px; text-align: center; font-size: 22px; font-weight: 600;
+      border: 2px solid #E5E7EB; border-radius: 14px; outline: none;
+    }
+    .pin-input input:focus { border-color: #A855F7; }
+    .card button {
+      width: 100%; padding: 14px; border: none; border-radius: 14px;
+      background: #A855F7; color: white; font-size: 16px; font-weight: 600;
+      cursor: pointer;
+    }
+    .card button:hover { background: #9333EA; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p style="color:#6B7280;">Loading care profile...</p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://wsihkqgpjhrgwuzsxchy.supabase.co/functions/v1/share';
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function fmtDate(d) {
+      try { return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+      catch { return d; }
+    }
+
+    function borderColor(title) {
+      const t = title.toLowerCase();
+      if (t.includes('vet')||t.includes('vaccination')||t.includes('microchip')) return '#93C5FD';
+      if (t.includes('medication')||t.includes('allerg')||t.includes('symptom')) return '#67E8F9';
+      if (t.includes('diet')||t.includes('nutrition')) return '#FF8C7A';
+      if (t.includes('groom')) return '#F9A8D4';
+      if (t.includes('training')||t.includes('quirk')) return '#22C55E';
+      if (t.includes('potty')) return '#F472B6';
+      if (t.includes('household')||t.includes('rule')) return '#FB923C';
+      if (t.includes('exercise')) return '#A3E635';
+      if (t.includes('sleep')) return '#A855F7';
+      if (t.includes('document')||t.includes('contact')) return '#C084FC';
+      return '#D1D5DB';
+    }
+
+    function sectionEmoji(title) {
+      const t = title.toLowerCase();
+      if (t.includes('vaccination')) return '\u{1F489}';
+      if (t.includes('contact')) return '\u{1F465}';
+      if (t.includes('vet')) return '\u{1F3E5}';
+      if (t.includes('medication')) return '\u{1F48A}';
+      if (t.includes('allerg')) return '\u26A0\uFE0F';
+      if (t.includes('diet')||t.includes('nutrition')) return '\u{1F37D}\uFE0F';
+      if (t.includes('groom')) return '\u2702\uFE0F';
+      if (t.includes('symptom')) return '\u{1F321}\uFE0F';
+      if (t.includes('document')) return '\u{1F4C4}';
+      if (t.includes('microchip')) return '\u{1F4CB}';
+      if (t.includes('exercise')) return '\u{1F3C3}';
+      if (t.includes('sleep')) return '\u{1F634}';
+      if (t.includes('training')) return '\u{1F393}';
+      if (t.includes('quirk')) return '\u26A1';
+      if (t.includes('household')) return '\u{1F3E0}';
+      if (t.includes('potty')) return '\u{1F6BD}';
+      return '\u{1F4CC}';
+    }
+
+    function formatEntry(entry, sectionTitle) {
+      const t = (sectionTitle||'').toLowerCase();
+      let html = '<div class="entry">';
+      html += '<div class="entry-title">' + esc(entry.title) + '</div>';
+
+      if (entry.content) {
+        try {
+          const p = JSON.parse(entry.content);
+          if (typeof p === 'object' && p !== null) {
+
+            // ── Contacts: clickable phone + email ──
+            if (t.includes('contact')) {
+              html += '<div class="entry-content">';
+              if (p.role) html += '<div style="color:#6B7280;font-size:13px;">' + esc(p.role) + '</div>';
+              if (p.phone) html += '<div>\u{1F4DE} <a href="tel:' + esc(p.phone) + '" style="color:#2563EB;text-decoration:none;font-weight:500;">' + esc(p.phone) + '</a></div>';
+              if (p.email) html += '<div>\u{2709}\uFE0F <a href="mailto:' + esc(p.email) + '" style="color:#2563EB;text-decoration:none;font-weight:500;">' + esc(p.email) + '</a></div>';
+              if (p.content || p.notes) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.content || p.notes) + '</div>';
+              html += '</div>';
+
+            // ── Allergies: severity with color ──
+            } else if (t.includes('allerg')) {
+              html += '<div class="entry-content">';
+              if (p.severity) {
+                const sc = p.severity==='Severe'?'#EF4444':p.severity==='Moderate'?'#FB923C':'#FACC15';
+                html += '<div><span class="entry-label">Severity:</span> <span style="color:'+sc+';font-weight:600;">' + esc(p.severity) + '</span></div>';
+              }
+              if (p.reaction) html += '<div><span class="entry-label">Reaction:</span> ' + esc(p.reaction) + '</div>';
+              if (p.content || p.notes) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.content || p.notes) + '</div>';
+              html += '</div>';
+
+            // ── Feeding times: meals table ──
+            } else if (Array.isArray(p.meals)) {
+              html += '<div class="entry-content">';
+              p.meals.forEach(function(m){ html += '<div style="display:flex;justify-content:space-between;"><span>' + esc(m.name||'Meal') + '</span><span style="color:#9CA3AF;">' + esc(m.time||'Not set') + '</span></div>'; });
+              html += '</div>';
+
+            // ── Grooming: frequency formatting ──
+            } else if (t.includes('groom')) {
+              html += '<div class="entry-content">';
+              if (p.frequency) {
+                const freq = (p.frequency==='Custom' && p.customNum && p.customUnit) ? 'Every ' + p.customNum + ' ' + p.customUnit : p.frequency;
+                html += '<div><span class="entry-label">Frequency:</span> ' + esc(freq) + '</div>';
+              }
+              if (p.duration) html += '<div><span class="entry-label">Duration:</span> ' + esc(p.duration) + ' mins</div>';
+              if (p.notes || p.content) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.notes || p.content) + '</div>';
+              html += '</div>';
+
+            // ── Vet visits: reason + outcome ──
+            } else if (t.includes('vet')) {
+              html += '<div class="entry-content">';
+              if (p.reason) html += '<div><span class="entry-label">Reason:</span> ' + esc(p.reason) + '</div>';
+              if (p.outcome) html += '<div><span class="entry-label">Outcome:</span> ' + esc(p.outcome) + '</div>';
+              if (p.content || p.notes) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.content || p.notes) + '</div>';
+              html += '</div>';
+
+            // ── Vaccinations ──
+            } else if (t.includes('vaccination')) {
+              html += '<div class="entry-content">';
+              if (p.valid_for) html += '<div><span class="entry-label">Valid for:</span> ' + esc(p.valid_for) + '</div>';
+              if (p.content || p.notes) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.content || p.notes) + '</div>';
+              html += '</div>';
+
+            // ── Medications ──
+            } else if (t.includes('medication')) {
+              html += '<div class="entry-content">';
+              if (p.dosage) html += '<div><span class="entry-label">Dosage:</span> ' + esc(p.dosage) + '</div>';
+              if (p.content || p.notes) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.content || p.notes) + '</div>';
+              html += '</div>';
+
+            // ── Documents ──
+            } else if (t.includes('document')) {
+              html += '<div class="entry-content">';
+              if (p.doc_category) html += '<div><span class="entry-label">Category:</span> ' + esc(p.doc_category) + '</div>';
+              if (p.content || p.notes) html += '<div style="color:#6B7280;margin-top:4px;">' + esc(p.content || p.notes) + '</div>';
+              html += '</div>';
+
+            // ── Generic fallback ──
+            } else {
+              const parts = [];
+              const skip = ['is_key','isKey','date','time'];
+              for (const [k,v] of Object.entries(p)) {
+                if (!v || !String(v).trim() || skip.includes(k)) continue;
+                const label = k.replace(/_/g,' ').replace(/([A-Z])/g,' $1').replace(/^./,function(s){return s.toUpperCase();}).trim();
+                parts.push('<span class="entry-label">' + esc(label) + ':</span> ' + esc(String(v)));
+              }
+              if (parts.length) html += '<div class="entry-content">' + parts.join('<br/>') + '</div>';
+            }
+          } else {
+            html += '<div class="entry-content">' + esc(String(p)) + '</div>';
+          }
+        } catch(e) {
+          html += '<div class="entry-content">' + esc(entry.content) + '</div>';
+        }
+      }
+      if (entry.entry_date) html += '<div class="entry-date">' + fmtDate(entry.entry_date) + '</div>';
+      html += '</div>';
+      return html;
+    }
+
+    function renderProfile(data) {
+      const dog = data.dog;
+      const info = [dog.breed, dog.age].filter(Boolean).join(' \u2022 ');
+      let html = '<div class="header">';
+      html += '<div class="header-badge"><span class="live-dot"></span>Live Care Profile</div>';
+      if (dog.photo_url) {
+        html += '<img class="avatar" src="' + esc(dog.photo_url) + '" alt="' + esc(dog.name) + '">';
+      } else {
+        html += '<div class="avatar-placeholder">\u{1F436}</div>';
+      }
+      html += '<div class="dog-name">' + esc(dog.name) + '</div>';
+      if (info) html += '<div class="dog-info">' + esc(info) + '</div>';
+      html += '</div><div class="container">';
+
+      if (!data.sections || data.sections.length === 0) {
+        html += '<div class="section"><div class="empty">No care plan entries yet.</div></div>';
+      } else {
+        data.sections.forEach(function(sec) {
+          const bc = borderColor(sec.title);
+          const emoji = sec.emoji || sectionEmoji(sec.title);
+          html += '<div class="section" style="border-left-color:' + bc + ';">';
+          html += '<div class="section-header"><span class="section-emoji">' + emoji + '</span>';
+          html += '<span class="section-title">' + esc(sec.title) + '</span>';
+          html += '<span class="entry-count">' + sec.entries.length + '</span></div>';
+          if (sec.entries.length === 0) {
+            html += '<div class="empty">No entries yet</div>';
+          } else {
+            sec.entries.forEach(function(e){ html += formatEntry(e, sec.title); });
+          }
+          html += '</div>';
+        });
+      }
+
+      html += '</div>';
+      html += '<div class="footer"><p>This care profile updates in real-time.</p>';
+      html += '<p>Refresh the page to see the latest info.</p>';
+      html += '<div class="pip-badge">\u{1F43E} Powered by Pip</div></div>';
+
+      document.getElementById('app').innerHTML = html;
+      // Update page title
+      document.title = dog.name + "'s Care Profile — Pip";
+    }
+
+    function showError(icon, title, msg) {
+      document.getElementById('app').innerHTML =
+        '<div class="card-center"><div class="card"><div class="icon">' + icon + '</div>' +
+        '<h1>' + esc(title) + '</h1><p>' + esc(msg) + '</p></div></div>';
+    }
+
+    function showPIN(errorMsg) {
+      let html = '<div class="card-center"><div class="card">';
+      html += '<div class="icon">\u{1F510}</div>';
+      html += '<h1>PIN Required</h1>';
+      html += '<p>This care profile is protected.<br>Enter the 4-digit PIN to view it.</p>';
+      if (errorMsg) html += '<p class="error-msg">' + esc(errorMsg) + '</p>';
+      html += '<div class="pin-input">';
+      for (let i = 0; i < 4; i++) html += '<input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric"' + (i===0?' autofocus':'') + '>';
+      html += '</div>';
+      html += '<button id="pin-submit">View Care Profile</button>';
+      html += '</div></div>';
+      document.getElementById('app').innerHTML = html;
+
+      // Wire up PIN inputs
+      const inputs = document.querySelectorAll('.pin-input input');
+      inputs.forEach(function(inp, i) {
+        inp.addEventListener('input', function() {
+          inp.value = inp.value.replace(/\D/g, '');
+          if (inp.value && i < 3) inputs[i+1].focus();
+        });
+        inp.addEventListener('keydown', function(e) {
+          if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i-1].focus();
+        });
+      });
+      document.getElementById('pin-submit').addEventListener('click', function() {
+        const pin = Array.from(inputs).map(function(x){return x.value;}).join('');
+        if (pin.length === 4) loadData(pin);
+      });
+    }
+
+    async function loadData(pin) {
+      if (!token) { showError('\u{1F615}', 'Invalid Link', 'This share link is missing a token.'); return; }
+
+      let url = API_BASE + '?token=' + encodeURIComponent(token);
+      if (pin) url += '&pin=' + encodeURIComponent(pin);
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.error === 'pin_required') { showPIN(); return; }
+        if (data.error === 'pin_incorrect') { showPIN('Incorrect PIN. Please try again.'); return; }
+        if (data.error === 'not_found') { showError('\u{1F615}', 'Not Found', data.message); return; }
+        if (data.error === 'expired') { showError('\u23F0', 'Link Expired', data.message); return; }
+        if (data.error === 'revoked') { showError('\u{1F6AB}', 'Link Revoked', data.message); return; }
+        if (data.error) { showError('\u{1F615}', 'Error', data.message || 'Something went wrong.'); return; }
+
+        renderProfile(data);
+      } catch(e) {
+        showError('\u{1F615}', 'Connection Error', 'Could not load the care profile. Please try again.');
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
